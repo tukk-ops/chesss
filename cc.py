@@ -205,9 +205,8 @@ class ChessApp:
             if isinstance(self.selected_piece, Pawn):
                 if (self.selected_piece.color == "white" and gy == 0) or \
                    (self.selected_piece.color == "black" and gy == 7):
-                    color = self.selected_piece.color
-                    self.pieces.remove(self.selected_piece)
-                    self.pieces.append(Queen(color, gx, gy))
+                    self.promote_pawn(self.selected_piece, gx, gy)
+                    return
             self.end_turn()
         else:
             clicked = next((p for p in self.pieces if p.x == gx and p.y == gy), None)
@@ -218,6 +217,40 @@ class ChessApp:
             else:
                 self.selected_piece, self.valid_moves = None, []
         self.render()
+
+    def promote_pawn(self, pawn, gx, gy):
+        self.render() # 先更新畫面，讓玩家看到棋子移動到終點
+        promo_win = tk.Toplevel(self.root)
+        promo_win.title("選擇升變")
+        
+        # 讓視窗顯示在主要視窗附近
+        x = self.root.winfo_rootx() + 50
+        y = self.root.winfo_rooty() + 100
+        promo_win.geometry(f"+{x}+{y}")
+        promo_win.transient(self.root)
+        promo_win.grab_set()
+
+        tk.Label(promo_win, text="請選擇要升變的棋子：", font=("Arial", 12)).pack(pady=10)
+        
+        btn_frame = tk.Frame(promo_win)
+        btn_frame.pack(pady=10)
+
+        chosen_cls = [Queen]
+
+        def on_choose(cls):
+            chosen_cls[0] = cls
+            promo_win.destroy()
+
+        pieces = [(Queen, "♕ 皇后"), (Rook, "♖ 城堡"), (Bishop, "♗ 主教"), (Knight, "♘ 騎士")]
+        for cls, text in pieces:
+            tk.Button(btn_frame, text=text, font=("Arial", 12), width=8, command=lambda c=cls: on_choose(c)).pack(side="left", padx=5)
+
+        self.root.wait_window(promo_win)
+        
+        color = pawn.color
+        self.pieces.remove(pawn)
+        self.pieces.append(chosen_cls[0](color, gx, gy))
+        self.end_turn()
 
     def end_turn(self):
         self.current_turn = "black" if self.current_turn == "white" else "white"
